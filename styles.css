@@ -1,3 +1,7 @@
 .custom-toolbar-btn {
     width: auto !important;
 }
+
+#graph-container circle {
+    cursor: pointer;
+}

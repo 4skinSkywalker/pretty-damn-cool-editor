@@ -32,7 +32,6 @@ let graphContainer = document.getElementById("graph-container");
 let title = document.querySelector("#doc-title");
 let datalistInput = document.querySelector("#datalist-input");
 let datalistOptions = document.querySelector("#datalist-options");
-let openDocBtn = document.querySelector("#open-doc-btn");
 let saveDocBtn = document.querySelector("#save-doc-btn");
 let saveAsDocBtn = document.querySelector("#save-as-doc-btn");
 let selectedDoc;
@@ -43,7 +42,7 @@ let selectedDocPassword;
     populateDatalist();
 
     // Events
-    openDocBtn.addEventListener("click", () => openDocHandler());
+    datalistInput.addEventListener("input", () => openDocHandler());
     saveDocBtn.addEventListener("click", () => saveDocHandler());
     saveAsDocBtn.addEventListener("click", () => saveDocHandler(true));
 })();
@@ -81,12 +80,11 @@ function openDocHandler() {
     selectedDocPassword = pass;
     title.innerHTML = doc.name + " v" + doc.version;
     datalistInput.value = "";
-
-    // TODO: Work in progress
-    loadGitGraph(getDocsLS(doc.name));
+    loadGitGraph(doc);
 }
 
-function loadGitGraph(docs) {
+function loadGitGraph(doc) {
+    let docs = getDocsLS(doc.name);
     graphContainer.innerHTML = "";
     let gitgraph = GitgraphJS.createGitgraph(graphContainer, {
         mode: "compact",
@@ -100,14 +98,26 @@ function loadGitGraph(docs) {
             }
         )
     });
-    console.log(gitgraph);
     docs.sort((a, b) => getSemanticValue(a.version) - getSemanticValue(b.version));
-    let branches = [gitgraph.branch('v0')];
+    let branches = [gitgraph.branch('master')];
     for (let i = 0; i < docs.length; i++) {
         branches[branches.length - 1]
             .commit({
-                onClick: commit => console.log(commit),
-                subject: JSON.stringify(docs[i])
+                onClick: commit => {
+
+                    // Retrieve the text
+                    let doc = JSON.parse(commit.subject);
+                    let text = loadDoc(doc, selectedDocPassword);
+                    if (!text) {
+                        return;
+                    }
+                    quill.setContents(text);
+                    selectedDoc = doc;
+                    title.innerHTML = doc.name + " v" + doc.version;
+                    loadGitGraph(doc);
+                },
+                subject: JSON.stringify(docs[i]),
+                dotText: (docs[i].version === doc.version) ? "❤️" : ""
             });
 
         // Break here to avoid problems
@@ -170,8 +180,7 @@ Please choose a new and unique name.
     title.innerHTML = doc.name + " v" + doc.version;
     datalistInput.value = "";
     populateDatalist();
-
-    // TODO: Update datalistInput to the correct document
+    loadGitGraph(doc);
 }
 
 function getSemanticValue(version) {
