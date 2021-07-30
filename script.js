@@ -9,127 +9,166 @@ let quill = new Quill('#editor', {
 let ipfs = {
     LSKey: "ipfs",
     add: data => {
-        let id = Math.random() * 1000 | 0;
-        let stored = getLS(ipfs.LSKey);
+        let id = Math.random() * 1e10 | 0;
+        let stored = JSON.parse(window.localStorage.getItem(ipfs.LSKey));
+        if (!stored) {
+            stored = {};
+        }
         stored[id] = data;
-        setLS(ipfs.LSKey, stored);
+        window.localStorage.setItem(ipfs.LSKey, JSON.stringify(stored));
         return id;
     },
     cat: id => {
-        return getLS(ipfs.LSKey)[id];
+        let stored = JSON.parse(window.localStorage.getItem(ipfs.LSKey));
+        if (!stored) {
+            return;
+        }
+        return stored[id];
     }
 };
 
-let LSKey = "v0";
 let title = document.querySelector("#doc-title");
 let datalistInput = document.querySelector("#datalist-input");
 let datalistOptions = document.querySelector("#datalist-options");
 let openDocBtn = document.querySelector("#open-doc-btn");
 let newDocBtn = document.querySelector("#new-doc-btn");
 let saveDocBtn = document.querySelector("#save-doc-btn");
-let currentName;
-let currentPassword;
 
 // Events
 openDocBtn.addEventListener("click", () => openDocHandler());
 newDocBtn.addEventListener("click", () => newDocHandler());
 saveDocBtn.addEventListener("click", () => saveDocHandler());
 
+// TODO: Expressions to use
+// let key = aesjs.utils.hex.toBytes(SHA256(pass));
+// let docString = decrypt(key, encryptedDoc);
+//
+// let datalistOption = document.querySelector(`option[value="${datalistInput.value}"]`);
+// datalistOption.getAttribute("data-value");
+//
+// quill.setContents(JSON.parse(docString));
+// let { ops: doc } = quill.getContents();
+//
+// function getSemanticValue(version) {
+//     version = version.split('.');
+//     version = +(version[0] + '.' + version.slice(1).join(''));
+//     return version;
+// }
+// getDocsLS("asd").sort((a, b) => getSemanticValue(a.version) - getSemanticValue(b.version));
+
 // Functions
 function openDocHandler() {
-    let datalistOption = document.querySelector(`option[value="${datalistInput.value}"]`);
-    let ipfsId = datalistOption.getAttribute("data-value");
-    let { encryptedDoc, sign } = ipfs.cat(ipfsId);
-    let pass = window.prompt("Enter the password");
-    if (!pass) {
-        window.alert("No password provided");
-        return;
-    }
-
-    // Decrypt the document
-    let key = aesjs.utils.hex.toBytes(SHA256(pass));
-    let docString = decrypt(key, encryptedDoc);
-
-    // Check password correctness
-    if (SHA256(docString) !== sign) {
-        window.alert("Password is incorrect");
-        return;
-    }
-    currentName = datalistInput.value;
-    title.innerHTML = currentName;
-    currentPassword = pass;
-
-    // Set contents to quill
-    quill.setContents(JSON.parse(docString));
-    datalistInput.value = "";
+    
 }
 
 function newDocHandler() {
-    let name = window.prompt("Enter a name");
-    if (!name) {
-        window.alert("No name provided");
-        return;
-    }
 
-    // TODO: Check if the name is already there
-
-    // TODO: Notify the user that the name cannot be change
 }
 
-function saveDocHandler() {
-    if (!currentPassword) {
-        window.alert("No document selected");
-        return;
-    }
-
-    // TODO: Notify the user he/she has to load a document first
-
-    // Get contents from quill
-    let { ops: doc } = quill.getContents();
-    saveDoc(currentName, currentPassword, doc);
-    loadDocs();
+function saveDocHandler(name) {
+    
 }
 
-function saveDoc(name, pass, doc) {
+function saveDoc(name, version, pass, doc) {
     let docString = JSON.stringify(doc);
     let sign = SHA256(docString);
 
     // SHA256 to hash the password, but this method is vulnerable to Rainbow Attacks
     let key = aesjs.utils.hex.toBytes(SHA256(pass));
     let encryptedDoc = encrypt(key, docString);
+    
+    // Save an entry in the ipfs
     let ipfsEntry = {
         encryptedDoc,
         sign
     };
     let ipfsId = ipfs.add(ipfsEntry);
-    let localEntry = {
+
+    if (!name) {
+        name = window.prompt("Enter a document name.");
+        if (!name) {
+            window.alert("Document name not provided.");
+            return;
+        }
+
+        // TODO: Check if the name already exists 
+    }
+
+    function getNextVersion(version) {
+        let nextVersion = version.split('.');
+        nextVersion[nextVersion.length - 1]++;
+        nextVersion = nextVersion.join('.');
+        return nextVersion;
+    }
+
+    function getLastVersion(version) {
+        let lastVersion = getNextVersion(version);
+        while (getDocLS(name, lastVersion)) {
+            lastVersion = getNextVersion(lastVersion);
+        }
+        return lastVersion;
+    }
+
+    if (!version) {
+
+        // Check the latest version of the document and bump it by 1
+        version = getLastVersion("0");
+        console.log("Continuing on the main version line...", version);
+    } else {
+
+        // Checking if a branch is needed
+        let nextVersionDoc = getDocLS(name, getNextVersion(version));
+        if (!nextVersionDoc) {
+            version = getNextVersion(version);
+            console.log("Continuing on the same version line...", version);
+        } else {
+            console.log("Branching the version line...");
+            version = getLastVersion(version + ".0");
+            console.log("Next open version spot is", version);
+        }
+    }
+
+    let localeStorageEntry = {
         timestamp: Date.now(),
+        name,
+        version,
         ipfsId
-    };
-    let stored = getLS(LSKey);
-    stored[name] = localEntry;
-    setLS(LSKey, stored);
+    }
+    pushDocLS(localeStorageEntry);
 }
 
 function loadDocs() {
+
+    // Reset and populate the datalist options
     datalistOptions.innerHTML = "";
-    let stored = getLS(LSKey);
-    for (let key in stored) {
+    let docs = getDocsLS();
+    for (let key in docs) {
         datalistOptions.innerHTML += `<option data-value="${stored[key].ipfsId}" value="${key}">${key}</option>`;
     }
 };
 loadDocs();
 
-function getLS(key) {
-    let stored = JSON.parse(window.localStorage.getItem(key));
-    if (!stored) {
-        stored = {};
+var LSKey = "documents-v0";
+function getDocsLS(name) {
+    let docs = JSON.parse(window.localStorage.getItem(LSKey));
+    if (!docs) {
+        docs = [];
     }
-    return stored;
+    if (!name) {
+        return docs;
+    }
+    return docs.filter(doc => doc.name === name);
 }
 
-function setLS(key, data) {
-    window.localStorage.setItem(key, JSON.stringify(data));
+function getDocLS(name, version) {
+    let docs = getDocsLS(name);
+    return docs.find(doc => doc.version === version);
+}
+
+function pushDocLS(data) {
+    let docs = getDocsLS();
+    docs.push(data);
+    window.localStorage.setItem(LSKey, JSON.stringify(docs));
 }
 
 function encrypt(key, plaintext) {
