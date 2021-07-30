@@ -32,6 +32,7 @@ let graphContainer = document.getElementById("graph-container");
 let title = document.querySelector("#doc-title");
 let datalistInput = document.querySelector("#datalist-input");
 let datalistOptions = document.querySelector("#datalist-options");
+let openDocBtn = document.querySelector("#open-doc-btn");
 let saveDocBtn = document.querySelector("#save-doc-btn");
 let saveAsDocBtn = document.querySelector("#save-as-doc-btn");
 let selectedDoc;
@@ -42,7 +43,7 @@ let selectedDocPassword;
     populateDatalist();
 
     // Events
-    datalistInput.addEventListener("input", () => openDocHandler());
+    datalistInput.addEventListener("change", () => openDocHandler());
     saveDocBtn.addEventListener("click", () => saveDocHandler());
     saveAsDocBtn.addEventListener("click", () => saveDocHandler(true));
 })();
@@ -57,7 +58,11 @@ function openDocHandler() {
 
     // If the document name has changed reset selectedDocPassword
     if (selectedDoc && selectedDoc.name !== doc.name) {
+        selectedDoc = null;
         selectedDocPassword = null;
+        quill.setContents("");
+        title.innerHTML = '-';
+        graphContainer.innerHTML = "";
     }
     let pass;
     if (selectedDocPassword) {
@@ -73,11 +78,12 @@ function openDocHandler() {
     // Retrieve the text
     let text = loadDoc(doc, pass);
     if (!text) {
+        datalistInput.value = "";
         return;
     }
-    quill.setContents(text);
     selectedDoc = doc;
     selectedDocPassword = pass;
+    quill.setContents(text);
     title.innerHTML = doc.name + " v" + doc.version;
     datalistInput.value = "";
     loadGitGraph(doc);
@@ -111,8 +117,8 @@ function loadGitGraph(doc) {
                     if (!text) {
                         return;
                     }
-                    quill.setContents(text);
                     selectedDoc = doc;
+                    quill.setContents(text);
                     title.innerHTML = doc.name + " v" + doc.version;
                     loadGitGraph(doc);
                 },
@@ -195,20 +201,32 @@ function populateDatalist() {
     datalistOptions.innerHTML = "";
     let docs = getDocsLS();
 
-    // Sort documents in a way that makes sense
-    docs.sort((a, b) => {
-        if (a.name < b.name) {
-            return -1;
-        } else if (a.name > b.name) {
-            return 1;
-        } else {
-            return getSemanticValue(a.version) - getSemanticValue(b.version);
-        }
-    });
+    // Keep just the head of each document
+    let roots = {};
     for (let doc of docs) {
-        let base64 = btoa(JSON.stringify(doc));
-        datalistOptions.innerHTML += `<option data-base64="${base64}" value="${doc.name}-${doc.version}">${doc.name}</option>`;
+        if (!roots[doc.name]) {
+            roots[doc.name] = doc;
+        }
     }
+    for (let doc of Object.values(roots)) {
+        let base64 = btoa(JSON.stringify(doc));
+        datalistOptions.innerHTML += `<option data-base64="${base64}" value="${doc.name}">${doc.name}</option>`;
+    }
+
+    // Sort documents in a way that makes sense
+    // docs.sort((a, b) => {
+    //     if (a.name < b.name) {
+    //         return -1;
+    //     } else if (a.name > b.name) {
+    //         return 1;
+    //     } else {
+    //         return getSemanticValue(a.version) - getSemanticValue(b.version);
+    //     }
+    // });
+    // for (let doc of docs) {
+    //     let base64 = btoa(JSON.stringify(doc));
+    //     datalistOptions.innerHTML += `<option data-base64="${base64}" value="${doc.name}-${doc.version}">${doc.name}</option>`;
+    // }
 }
 
 function saveDoc(name, version, pass, text) {

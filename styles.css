@@ -2,6 +2,10 @@
     width: auto !important;
 }
 
+.ql-container {
+    height: 40vh;
+}
+
 #graph-container circle {
     cursor: pointer;
 }
