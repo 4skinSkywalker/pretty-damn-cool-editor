@@ -32,63 +32,144 @@ let title = document.querySelector("#doc-title");
 let datalistInput = document.querySelector("#datalist-input");
 let datalistOptions = document.querySelector("#datalist-options");
 let openDocBtn = document.querySelector("#open-doc-btn");
-let newDocBtn = document.querySelector("#new-doc-btn");
 let saveDocBtn = document.querySelector("#save-doc-btn");
-
-// TODO: Expressions to use
-// let key = aesjs.utils.hex.toBytes(SHA256(pass));
-// let docString = decrypt(key, encryptedDoc);
-//
-// let datalistOption = document.querySelector(`option[value="${datalistInput.value}"]`);
-// datalistOption.getAttribute("data-value");
-//
-// quill.setContents(JSON.parse(docString));
-// let { ops: doc } = quill.getContents();
+let saveAsDocBtn = document.querySelector("#save-as-doc-btn");
+let selectedDoc;
+let selectedDocPassword;
 
 // Functions
-function init() {
-    loadDocs();
+(function init() {
+    populateDatalist();
 
     // Events
     openDocBtn.addEventListener("click", () => openDocHandler());
-    newDocBtn.addEventListener("click", () => newDocHandler());
     saveDocBtn.addEventListener("click", () => saveDocHandler());
-}
+    saveAsDocBtn.addEventListener("click", () => saveDocHandler(true));
+})();
 
 function openDocHandler() {
-    
+    let selectedOption = document.querySelector(`option[value="${datalistInput.value}"]`);
+    if (!selectedOption) {
+        window.alert("No document selected.");
+        return;
+    }
+    let doc = JSON.parse(atob(selectedOption.getAttribute("data-base64")));
+
+    // If the document name has changed reset selectedDocPassword
+    if (selectedDoc && selectedDoc.name !== doc.name) {
+        selectedDocPassword = null;
+    }
+    let pass;
+    if (selectedDocPassword) {
+        pass = selectedDocPassword;
+    } else {
+        pass = window.prompt("Enter the password.");
+        if (!pass) {
+            window.alert("No password provided.");
+            return;
+        }
+    }
+
+    // Retrieve the text
+    let text = loadDoc(doc, pass);
+    if (!text) {
+        return;
+    }
+    quill.setContents(text);
+    selectedDoc = doc;
+    selectedDocPassword = pass;
+    title.innerHTML = doc.name + " v" + doc.version;
+    datalistInput.value = "";
 }
 
-function newDocHandler() {
-
-}
-
-function saveDocHandler(name) {
-    
-}
-
-function saveDoc(name, version, pass, doc) {
-    let docString = JSON.stringify(doc);
-    let sign = SHA256(docString);
-
-    // SHA256 to hash the password, but this method is vulnerable to Rainbow Attacks
-    let key = aesjs.utils.hex.toBytes(SHA256(pass));
-    let encryptedDoc = encrypt(key, docString);
-    
-    // Save an entry in the ipfs
-    let ipfsEntry = {
-        encryptedDoc,
-        sign
-    };
-    let ipfsId = ipfs.add(ipfsEntry);
-
-    if (!name) {
+function saveDocHandler(isSaveAs = false) {
+    let selectedDocTemp = selectedDoc;
+    if (isSaveAs) {
+        selectedDocTemp = null;
+    }
+    let name;
+    let version;
+    let pass;
+    if (selectedDocTemp) {
+        name = selectedDoc.name;
+        version = selectedDoc.version;
+        pass = selectedDocPassword;
+    } else {
         name = window.prompt("Enter a document name.");
         if (!name) {
             window.alert("Document name not provided.");
             return;
         }
+
+        // Check if the document already exists
+        let docs = getDocsLS(name);
+        if (docs.length) {
+            window.alert(`
+A document with the name ${name} already exists.
+Please choose a new and unique name.
+`);
+            return;
+        }
+        pass = window.prompt("Enter the password.");
+        if (!pass) {
+            window.alert("No password provided.");
+            return;
+        }
     }
+    let { ops: text } = quill.getContents();
+
+    // Save the document and change the state
+    let doc = saveDoc(name, version, pass, text);
+    selectedDoc = doc;
+    selectedDocPassword = pass;
+    title.innerHTML = doc.name + " v" + doc.version;
+    datalistInput.value = "";
+    populateDatalist();
+
+    // TODO: Update datalistInput to the correct document
+}
+
+function populateDatalist() {
+
+    // Reset and populate the datalist options
+    datalistOptions.innerHTML = "";
+    let docs = getDocsLS();
+
+    // Sort documents in a way that makes sense
+    function getSemanticValue(version) {
+        version = version.split('.');
+        version = +(version[0] + '.' + version.slice(1).join(''));
+        return version;
+    }
+    docs.sort((a, b) => {
+        if (a.name < b.name) {
+            return -1;
+        } else if (a.name > b.name) {
+            return 1;
+        } else {
+            return getSemanticValue(a.version) - getSemanticValue(b.version);
+        }
+    });
+    for (let doc of docs) {
+        let base64 = btoa(JSON.stringify(doc));
+        datalistOptions.innerHTML += `<option data-base64="${base64}" value="${doc.name}-${doc.version}">${doc.name}</option>`;
+    }
+}
+
+function saveDoc(name, version, pass, text) {
+    text = JSON.stringify(text);
+    let sign = SHA256(text);
+
+    // SHA256 to hash the password, but this method is vulnerable to Rainbow Attacks
+    let key = aesjs.utils.hex.toBytes(SHA256(pass));
+    let encryptedText = encrypt(key, text);
+    
+    // Save an entry in the ipfs
+    let ipfsEntry = {
+        encryptedText,
+        sign
+    };
+    let ipfsId = ipfs.add(ipfsEntry);
 
     function getNextVersion(version) {
         let nextVersion = version.split('.');
@@ -123,38 +204,30 @@ function saveDoc(name, version, pass, doc) {
             console.log("Next open version spot is", version);
         }
     }
-    let localeStorageEntry = {
+    let doc = {
         timestamp: Date.now(),
         name,
         version,
         ipfsId
     }
-    pushDocLS(localeStorageEntry);
+    return pushDocLS(doc);
 }
 
-function loadDocs() {
-
-    // Reset and populate the datalist options
-    datalistOptions.innerHTML = "";
-    let docs = getDocsLS();
-
-    // Sort documents in a way that makes sense
-    function getSemanticValue(version) {
-        version = version.split('.');
-        version = +(version[0] + '.' + version.slice(1).join(''));
-        return version;
+function loadDoc(doc, pass) {
+    if (!doc) {
+        window.alert("No document provided.");
+        return;
     }
-    docs.sort((a, b) => {
-        if (a.name === b.name) {
-            return getSemanticValue(a.version) - getSemanticValue(b.version);
-        } else {
-            return a.name > b.name;
-        }
-    });
-    for (let doc of docs) {
-        let base64 = btoa(JSON.stringify(doc));
-        datalistOptions.innerHTML += `<option data="${base64}" value="${doc.name}-${doc.version}">${doc.name}</option>`;
+    let { encryptedText, sign } = ipfs.cat(doc.ipfsId);
+    let key = aesjs.utils.hex.toBytes(SHA256(pass));
+    let text = decrypt(key, encryptedText);
+
+    // Check if the password is correct
+    if (SHA256(text) !== sign) {
+        window.alert("Password is incorrect.");
+        return;
     }
+    return JSON.parse(text);
 }
 
 function getDocsLS(name) {
@@ -177,6 +250,7 @@ function pushDocLS(data) {
     let docs = getDocsLS();
     docs.push(data);
     window.localStorage.setItem(LSKey, JSON.stringify(docs));
+    return data;
 }
 
 function encrypt(key, plaintext) {
