@@ -28,6 +28,7 @@ let ipfs = {
 };
 
 let LSKey = "documents-v0";
+let graphContainer = document.getElementById("graph-container");
 let title = document.querySelector("#doc-title");
 let datalistInput = document.querySelector("#datalist-input");
 let datalistOptions = document.querySelector("#datalist-options");
@@ -80,6 +81,50 @@ function openDocHandler() {
     selectedDocPassword = pass;
     title.innerHTML = doc.name + " v" + doc.version;
     datalistInput.value = "";
+
+    // TODO: Work in progress
+    loadGitGraph(getDocsLS(doc.name));
+}
+
+function loadGitGraph(docs) {
+    graphContainer.innerHTML = "";
+    let gitgraph = GitgraphJS.createGitgraph(graphContainer, {
+        mode: "compact",
+        orientation: "horizontal",
+        template: new GitgraphJS.templateExtend(
+            GitgraphJS.TemplateName.Metro,
+            {
+                commit: {
+                    hasTooltipInCompactMode: false
+                }
+            }
+        )
+    });
+    console.log(gitgraph);
+    docs.sort((a, b) => getSemanticValue(a.version) - getSemanticValue(b.version));
+    let branches = [gitgraph.branch('v0')];
+    for (let i = 0; i < docs.length; i++) {
+        branches[branches.length - 1]
+            .commit({
+                onClick: commit => console.log(commit),
+                subject: JSON.stringify(docs[i])
+            });
+
+        // Break here to avoid problems
+        if (i === docs.length - 1) {
+            break;
+        }
+
+        // Get levels which are important to know if it necessary to make a new branch or to go to the one before
+        let aLvl = docs[i].version.split('.').length;
+        let bLvl = docs[i + 1].version.split('.').length;
+        if (aLvl < bLvl) {
+            let branch = gitgraph.branch('v' + docs[i].version);
+            branches.push(branch);
+        } else if (aLvl > bLvl) {
+            branches.pop();
+        }
+    }
 }
 
 function saveDocHandler(isSaveAs = false) {
@@ -129,6 +174,12 @@ Please choose a new and unique name.
     // TODO: Update datalistInput to the correct document
 }
 
+function getSemanticValue(version) {
+    version = version.split('.');
+    version = +(version[0] + '.' + version.slice(1).join(''));
+    return version;
+}
+
 function populateDatalist() {
 
     // Reset and populate the datalist options
@@ -136,11 +187,6 @@ function populateDatalist() {
     let docs = getDocsLS();
 
     // Sort documents in a way that makes sense
-    function getSemanticValue(version) {
-        version = version.split('.');
-        version = +(version[0] + '.' + version.slice(1).join(''));
-        return version;
-    }
     docs.sort((a, b) => {
         if (a.name < b.name) {
             return -1;
