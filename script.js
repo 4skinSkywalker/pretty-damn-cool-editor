@@ -27,17 +27,13 @@ let ipfs = {
     }
 };
 
+let LSKey = "documents-v0";
 let title = document.querySelector("#doc-title");
 let datalistInput = document.querySelector("#datalist-input");
 let datalistOptions = document.querySelector("#datalist-options");
 let openDocBtn = document.querySelector("#open-doc-btn");
 let newDocBtn = document.querySelector("#new-doc-btn");
 let saveDocBtn = document.querySelector("#save-doc-btn");
-
-// Events
-openDocBtn.addEventListener("click", () => openDocHandler());
-newDocBtn.addEventListener("click", () => newDocHandler());
-saveDocBtn.addEventListener("click", () => saveDocHandler());
 
 // TODO: Expressions to use
 // let key = aesjs.utils.hex.toBytes(SHA256(pass));
@@ -48,15 +44,17 @@ saveDocBtn.addEventListener("click", () => saveDocHandler());
 //
 // quill.setContents(JSON.parse(docString));
 // let { ops: doc } = quill.getContents();
-//
-// function getSemanticValue(version) {
-//     version = version.split('.');
-//     version = +(version[0] + '.' + version.slice(1).join(''));
-//     return version;
-// }
-// getDocsLS("asd").sort((a, b) => getSemanticValue(a.version) - getSemanticValue(b.version));
 
 // Functions
+function init() {
+    loadDocs();
+
+    // Events
+    openDocBtn.addEventListener("click", () => openDocHandler());
+    newDocBtn.addEventListener("click", () => newDocHandler());
+    saveDocBtn.addEventListener("click", () => saveDocHandler());
+}
+
 function openDocHandler() {
     
 }
@@ -90,8 +88,6 @@ function saveDoc(name, version, pass, doc) {
             window.alert("Document name not provided.");
             return;
         }
-
-        // TODO: Check if the name already exists 
     }
 
     function getNextVersion(version) {
@@ -127,7 +123,6 @@ function saveDoc(name, version, pass, doc) {
             console.log("Next open version spot is", version);
         }
     }
-
     let localeStorageEntry = {
         timestamp: Date.now(),
         name,
@@ -142,13 +137,26 @@ function loadDocs() {
     // Reset and populate the datalist options
     datalistOptions.innerHTML = "";
     let docs = getDocsLS();
-    for (let key in docs) {
-        datalistOptions.innerHTML += `<option data-value="${stored[key].ipfsId}" value="${key}">${key}</option>`;
-    }
-};
-loadDocs();
 
-var LSKey = "documents-v0";
+    // Sort documents in a way that makes sense
+    function getSemanticValue(version) {
+        version = version.split('.');
+        version = +(version[0] + '.' + version.slice(1).join(''));
+        return version;
+    }
+    docs.sort((a, b) => {
+        if (a.name === b.name) {
+            return getSemanticValue(a.version) - getSemanticValue(b.version);
+        } else {
+            return a.name > b.name;
+        }
+    });
+    for (let doc of docs) {
+        let base64 = btoa(JSON.stringify(doc));
+        datalistOptions.innerHTML += `<option data="${base64}" value="${doc.name}-${doc.version}">${doc.name}</option>`;
+    }
+}
+
 function getDocsLS(name) {
     let docs = JSON.parse(window.localStorage.getItem(LSKey));
     if (!docs) {
