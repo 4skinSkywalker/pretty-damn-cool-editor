@@ -13,79 +13,82 @@
 </head>
 <body>
 
-    <div class="p-3">
-        <div class="col-xl-8 mx-auto d-grid gap-3">
-            <div>
-                <input class="form-control" list="datalist-options" id="datalist-input" placeholder="Type to search..." autocomplete="off">
-                <datalist id="datalist-options"></datalist>
-            </div>
-            <h2 class="display-6">
-              <div id="doc-title">-</div>
-              <div id="doc-info" class="text-muted fs-4 mt-1"></div>
-            </h2>
-            <div>
-                <div id="toolbar">
-    
-                    <!-- My own buttons -->
-                    <button class="custom-toolbar-btn py-0 me-3" id="save-doc-btn">💾 Save</button>
-                    <button class="custom-toolbar-btn py-0 me-3" id="save-as-doc-btn">💾 Save as</button>
-    
-                    <span class="ql-formats">
-                        <select class="ql-font"></select>
-                        <select class="ql-size"></select>
-                      </span>
-                      <span class="ql-formats">
-                        <button class="ql-bold"></button>
-                        <button class="ql-italic"></button>
-                        <button class="ql-underline"></button>
-                        <button class="ql-strike"></button>
-                      </span>
-                      <span class="ql-formats">
-                        <select class="ql-color"></select>
-                        <select class="ql-background"></select>
-                      </span>
-                      <span class="ql-formats">
-                        <button class="ql-script" value="sub"></button>
-                        <button class="ql-script" value="super"></button>
-                      </span>
-                      <span class="ql-formats">
-                        <button class="ql-header" value="1"></button>
-                        <button class="ql-header" value="2"></button>
-                        <button class="ql-blockquote"></button>
-                        <button class="ql-code-block"></button>
-                      </span>
-                      <span class="ql-formats">
-                        <button class="ql-list" value="ordered"></button>
-                        <button class="ql-list" value="bullet"></button>
-                        <button class="ql-indent" value="-1"></button>
-                        <button class="ql-indent" value="+1"></button>
-                      </span>
-                      <span class="ql-formats">
-                        <button class="ql-direction" value="rtl"></button>
-                        <select class="ql-align"></select>
-                      </span>
-                      <span class="ql-formats">
-                        <button class="ql-link"></button>
-                        <button class="ql-image"></button>
-                        <button class="ql-video"></button>
-                        <button class="ql-formula"></button>
-                      </span>
-                      <span class="ql-formats">
-                        <button class="ql-clean"></button>
-                      </span>
-                </div>
-                <div id="editor"></div>
-            </div>
-            <div id="commit-subject" class="d-none d-md-block" style="height: 1rem"></div>
-        </div>
-    </div>
-    <div id="graph-container" class="d-flex justify-content-center"></div>
-    
-    <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.rawgit.com/ricmoo/aes-js/e27b99df/index.js"></script>
-    <script src="gitgraph.js"></script>
-    <script src="script.js"></script>
+	<div class="container py-5 px-3">
+		<div class="row gap-5">
+			<div class="col d-grid gap-3">
+				<input class="form-control" list="datalist-options" id="datalist-input" placeholder="Type to search..." autocomplete="off">
+				<datalist id="datalist-options"></datalist>
+
+				<h2 class="display-6">
+					<div id="doc-title">-</div>
+					<div id="doc-info" class="text-muted fs-4 mt-1"></div>
+				</h2>
+
+				<div>
+					<div id="toolbar">
+	
+						<!-- My own buttons -->
+						<button class="custom-toolbar-btn py-0 me-3" id="save-doc-btn">💾 Save</button>
+						<button class="custom-toolbar-btn py-0 me-3" id="save-as-doc-btn">💾 Save as</button>
+	
+						<span class="ql-formats">
+						<select class="ql-font"></select>
+						<select class="ql-size"></select>
+						</span>
+						<span class="ql-formats">
+						<button class="ql-bold"></button>
+						<button class="ql-italic"></button>
+						<button class="ql-underline"></button>
+						<button class="ql-strike"></button>
+						</span>
+						<span class="ql-formats">
+						<select class="ql-color"></select>
+						<select class="ql-background"></select>
+						</span>
+						<span class="ql-formats">
+						<button class="ql-script" value="sub"></button>
+						<button class="ql-script" value="super"></button>
+						</span>
+						<span class="ql-formats">
+						<button class="ql-header" value="1"></button>
+						<button class="ql-header" value="2"></button>
+						<button class="ql-blockquote"></button>
+						<button class="ql-code-block"></button>
+						</span>
+						<span class="ql-formats">
+						<button class="ql-list" value="ordered"></button>
+						<button class="ql-list" value="bullet"></button>
+						<button class="ql-indent" value="-1"></button>
+						<button class="ql-indent" value="+1"></button>
+						</span>
+						<span class="ql-formats">
+						<button class="ql-direction" value="rtl"></button>
+						<select class="ql-align"></select>
+						</span>
+						<span class="ql-formats">
+						<button class="ql-link"></button>
+						<button class="ql-image"></button>
+						<button class="ql-video"></button>
+						<button class="ql-formula"></button>
+						</span>
+						<span class="ql-formats">
+						<button class="ql-clean"></button>
+						</span>
+					</div>
+					<div id="editor"></div>
+				</div>
+			</div>
+			<div class="col-12 col-lg-auto">
+				<div id="graph-container" class="d-flex justify-content-center"></div>
+			</div>
+		</div>
+	</div>
+
+	<script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"></script>
+	<script src="https://cdn.rawgit.com/ricmoo/aes-js/e27b99df/index.js"></script>
+	<script src="gitgraph.js"></script>
+	<script src="script.js"></script>
   
 </body>
 </html>

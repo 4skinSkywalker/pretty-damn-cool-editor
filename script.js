@@ -39,21 +39,14 @@ let openDocBtn = document.querySelector("#open-doc-btn");
 let saveDocBtn = document.querySelector("#save-doc-btn");
 let saveAsDocBtn = document.querySelector("#save-as-doc-btn");
 
-let commitSubject = document.querySelector("#commit-subject");
 let graphContainer = document.getElementById("graph-container");
 
 let selectedDoc;
 let selectedDocPassword;
 
-let isMobile = false;
-
 // Functions
 (function init() {
     populateDatalist();
-
-    if (window.innerWidth < 500) {
-        isMobile = true; // Quick and dirty cheap
-    }
 
     // Events
     datalistInput.addEventListener("change", () => openDocHandler());
@@ -123,7 +116,7 @@ function loadGitGraph(doc) {
     graphContainer.innerHTML = "";
     let gitgraph = GitgraphJS.createGitgraph(graphContainer, {
         mode: "compact",
-        orientation: (isMobile) ? "vertical" : "horizontal",
+        orientation: "vertical",
         template: new GitgraphJS.templateExtend(
             GitgraphJS.TemplateName.Metro,
             {
@@ -150,14 +143,6 @@ function loadGitGraph(doc) {
                     quill.setContents(text);
                     updateDocTitle(doc);
                     loadGitGraph(doc);
-                },
-                onMouseOver: commit => {
-                    let { name, version, timestamp, ipfsId } = JSON.parse(commit.subject);
-                    let date = new Date(timestamp);
-                    commitSubject.innerHTML = `${date.toLocaleDateString()} ${date.toLocaleTimeString()}, ${name} v${version}, IPFS ID: ${ipfsId}`;
-                },
-                onMouseOut: () => {
-                    commitSubject.innerHTML = "";
                 },
                 subject: JSON.stringify(docs[i]),
                 dotText: (docs[i].version === doc.version) ? "❤️" : ""
