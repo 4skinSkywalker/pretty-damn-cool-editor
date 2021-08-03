@@ -45,9 +45,15 @@ let graphContainer = document.getElementById("graph-container");
 let selectedDoc;
 let selectedDocPassword;
 
+let isMobile = false;
+
 // Functions
 (function init() {
     populateDatalist();
+
+    if (window.innerWidth < 500) {
+        isMobile = true; // Quick and dirty cheap
+    }
 
     // Events
     datalistInput.addEventListener("change", () => openDocHandler());
@@ -117,7 +123,7 @@ function loadGitGraph(doc) {
     graphContainer.innerHTML = "";
     let gitgraph = GitgraphJS.createGitgraph(graphContainer, {
         mode: "compact",
-        orientation: "horizontal",
+        orientation: (isMobile) ? "vertical" : "horizontal",
         template: new GitgraphJS.templateExtend(
             GitgraphJS.TemplateName.Metro,
             {
