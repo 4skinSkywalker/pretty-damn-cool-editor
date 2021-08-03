@@ -103,7 +103,7 @@ Contributions are what make the open source community such an amazing place to b
 <!-- LICENSE -->
 ## License
 
-This software is not licensed, you are free to abuse it. Burocracy will kill us all!
+This software is not licensed, you are free to abuse it. Bureaucracy will kill us all!
 
 
 

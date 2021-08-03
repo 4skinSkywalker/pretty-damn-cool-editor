@@ -28,13 +28,20 @@ let ipfs = {
 };
 
 let LSKey = "documents-v0";
-let graphContainer = document.getElementById("graph-container");
-let title = document.querySelector("#doc-title");
+let monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+let docTitle = document.querySelector("#doc-title");
+let docInfo = document.querySelector("#doc-info");
 let datalistInput = document.querySelector("#datalist-input");
 let datalistOptions = document.querySelector("#datalist-options");
+
 let openDocBtn = document.querySelector("#open-doc-btn");
 let saveDocBtn = document.querySelector("#save-doc-btn");
 let saveAsDocBtn = document.querySelector("#save-as-doc-btn");
+
+let commitSubject = document.querySelector("#commit-subject");
+let graphContainer = document.getElementById("graph-container");
+
 let selectedDoc;
 let selectedDocPassword;
 
@@ -47,6 +54,22 @@ let selectedDocPassword;
     saveDocBtn.addEventListener("click", () => saveDocHandler());
     saveAsDocBtn.addEventListener("click", () => saveDocHandler(true));
 })();
+
+function updateDocTitle(doc) {
+    if (!doc) {
+        docTitle.innerHTML = '-';
+        docInfo.innerHTML = '';
+        return;
+    }
+    let date = new Date(doc.timestamp);
+    let year = date.getFullYear();
+    let month = date.getMonth();
+    let day = date.getDate();
+    let hour = date.getHours();
+    let minute = date.getMinutes();
+    docTitle.innerHTML = `${doc.name} v${doc.version}`;
+    docInfo.innerHTML = `${day} ${monthNames[month]} ${year.toString().slice(2, 4)} ${hour}:${minute} (IPFS ID: ${doc.ipfsId})`;
+}
 
 function openDocHandler() {
     let selectedOption = document.querySelector(`option[value="${datalistInput.value}"]`);
@@ -61,7 +84,7 @@ function openDocHandler() {
         selectedDoc = null;
         selectedDocPassword = null;
         quill.setContents("");
-        title.innerHTML = '-';
+        updateDocTitle(); // Reset title and info
         graphContainer.innerHTML = "";
     }
     let pass;
@@ -84,7 +107,7 @@ function openDocHandler() {
     selectedDoc = doc;
     selectedDocPassword = pass;
     quill.setContents(text);
-    title.innerHTML = doc.name + " v" + doc.version;
+    updateDocTitle(doc);
     datalistInput.value = "";
     loadGitGraph(doc);
 }
@@ -119,8 +142,16 @@ function loadGitGraph(doc) {
                     }
                     selectedDoc = doc;
                     quill.setContents(text);
-                    title.innerHTML = doc.name + " v" + doc.version;
+                    updateDocTitle(doc);
                     loadGitGraph(doc);
+                },
+                onMouseOver: commit => {
+                    let { name, version, timestamp, ipfsId } = JSON.parse(commit.subject);
+                    let date = new Date(timestamp);
+                    commitSubject.innerHTML = `${date.toLocaleDateString()} ${date.toLocaleTimeString()}, ${name} v${version}, IPFS ID: ${ipfsId}`;
+                },
+                onMouseOut: () => {
+                    commitSubject.innerHTML = "";
                 },
                 subject: JSON.stringify(docs[i]),
                 dotText: (docs[i].version === doc.version) ? "❤️" : ""
@@ -183,7 +214,7 @@ Please choose a new and unique name.
     let doc = saveDoc(name, version, pass, text);
     selectedDoc = doc;
     selectedDocPassword = pass;
-    title.innerHTML = doc.name + " v" + doc.version;
+    updateDocTitle(doc);
     datalistInput.value = "";
     populateDatalist();
     loadGitGraph(doc);
