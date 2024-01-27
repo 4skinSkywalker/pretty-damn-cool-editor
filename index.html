@@ -13,16 +13,17 @@
 </head>
 <body>
 
-	<div class="container py-5 px-3">
+	<div class="container py-4 px-3">
 		<div class="row gap-5">
-			<div class="col d-grid gap-3">
+			<div class="col d-grid gap-3" style="align-content: start">
+
 				<input class="form-control" list="datalist-options" id="datalist-input" placeholder="Type to search..." autocomplete="off">
 				<datalist id="datalist-options"></datalist>
 
-				<h2 class="display-6">
-					<div id="doc-title">-</div>
-					<div id="doc-info" class="text-muted fs-4 mt-1"></div>
-				</h2>
+				<div class="ms-3">
+					<h1 id="doc-title" class="fs-3 mb-0">--</h1>
+					<h2 id="doc-info" class="fs-6 text-muted mb-0">--</h2>
+				</div>
 
 				<div>
 					<div id="toolbar">
